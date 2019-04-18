@@ -2,7 +2,6 @@ const THREE = require('three');
 const OrbitControls = require('three-orbitcontrols');
 const scene = require('./scene.js');
 
-
 /***** Parameters *****/
 const INSET_POS = new THREE.Vector2(20, 20);
 const INSET_SIZE = new THREE.Vector2(300, 300);
