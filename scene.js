@@ -152,7 +152,7 @@ function addPoint() {
 function addInsetLine(points, color) {
 	var lineGeometry = new THREE.Geometry()
 	for (var i = 0; i < points.length; i++) { lineGeometry.vertices.push(points[i]) }
-	const lineMaterial = new THREE.LineBasicMaterial({ color: color, linewidth: 4 })
+	const lineMaterial = new THREE.LineBasicMaterial({ color: color, linewidth: 10 })
 	const line = new THREE.Line(lineGeometry, lineMaterial)
 	inset.add(line)
 }
