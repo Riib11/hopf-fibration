@@ -238,9 +238,10 @@ exports.addPoint = addPoint;
 //
 
 
-PI = Math.PI
-function sin(theta) { return Math.sin(theta) }
-function cos(theta) { return Math.cos(theta) }
+PI   = Math.PI
+sin  = Math.sin
+cos  = Math.cos
+sqrt = Math.sqrt
 
 function spherical_to_cartesian(r, theta, phi) {
 	return new THREE.Vector3( r*sin(phi)*cos(theta), r*sin(phi)*sin(theta), r*cos(phi) )
@@ -296,6 +297,36 @@ function index_to_color(i, i_max) {
 	return color
 }
 
+function make_longitude_arc(y, theta0, theta1, color, steps=100) {
+	var fibers = [];
+	var inset_points = [];
+	for (var i = 0; i < steps; i++) {
+		const theta = theta0 + (theta1 - theta0) * i/steps;
+		const r = sqrt(1 - Math.pow(y,2));
+		const x = r * cos(theta);
+		const z = r * sin(theta);
+		const point = new THREE.Vector3( x, y, z );
+		const fiber_vertices = get_fiber_vertices(point);
+
+		fibers.push(fiber_vertices);
+		inset_points.push(point);
+	}
+
+	addInsetLine(inset_points, color); // draw inset line
+
+	for (var i = 0; i < fibers.length-1; i++) {
+		const fiber0 = fibers[i];
+		const fiber1 = fibers[(i+1)%fibers.length];
+
+		const meshMaterial = new THREE.MeshLambertMaterial({ color: color, emissive: 0x222222 });
+		const meshGeometry = make_band_geometry(fiber0, fiber1);
+		var mesh = new THREE.Mesh( meshGeometry, meshMaterial );
+		mesh.material.side = THREE.DoubleSide;
+		scene.add( mesh );
+	}
+}
+
+
 // gets surface of fibers at theta spanning from phi0 to phi1
 function make_fibers_surface_at_theta(theta, phi0, phi1, color, steps=100) {
 	var fibers = [];
@@ -323,18 +354,16 @@ function make_fibers_surface_at_theta(theta, phi0, phi1, color, steps=100) {
 	}
 }
 
-function make_fibers_surface_at_phi(phi, theta0, theta1, steps=100) {
+// gets surface of fibers at phi spanning from theta0 to theta1
+function make_fibers_surface_at_phi(phi, theta0, theta1, color, steps=100) {
 	var fibers = [];
-	var fibers_colors = [];
+	var inset_points = [];
 	for (var i = 0; i < steps; i++) {
-		const phi = phi0 + (i/steps) * (phi1 - phi0);
+		const theta = theta0 + (theta1 - theta0) * i/steps;
 		const point = spherical_to_cartesian(1, theta, phi);
-		const color = pointToColor(point);
 		const fiber_vertices = get_fiber_vertices(point);
-		
+
 		fibers.push(fiber_vertices);
-		fibers_colors.push(color);
-		
 		inset_points.push(point);
 	}
 
@@ -343,46 +372,61 @@ function make_fibers_surface_at_phi(phi, theta0, theta1, steps=100) {
 	for (var i = 0; i < fibers.length-1; i++) {
 		const fiber0 = fibers[i];
 		const fiber1 = fibers[(i+1)%fibers.length];
-		const color  = fibers_colors[i];
 
-		const meshMaterial = new THREE.MeshLambertMaterial({ color: color});
+		const meshMaterial = new THREE.MeshLambertMaterial({ color: color, emissive: 0x222222 });
 		const meshGeometry = make_band_geometry(fiber0, fiber1);
-		const mesh = new THREE.Mesh( meshGeometry, meshMaterial );
-		mesh.material.side = THREE.BackSide; // back faces
-		mesh.renderOrder = 0;
-		scene.add( mesh );
-
-		mesh = new THREE.Mesh( meshGeometry, meshMaterial.clone() );
-		mesh.material.side = THREE.FrontSide; // front faces
-		mesh.renderOrder = 1;
+		var mesh = new THREE.Mesh( meshGeometry, meshMaterial );
+		mesh.material.side = THREE.DoubleSide;
 		scene.add( mesh );
 	}
 }
 
-const thetas  = [0, 1/8, 2/8, 3/8];
-const offsets = [0, 1/8, 2/8, 3/8];
-for (var i = 0; i < offsets.length; i++) {
-	const theta = PI*thetas[i];
-	const phi0  = -PI*offsets[i];
-	const phi1  = -PI*offsets[i] + PI;
-	const color = index_to_color(i, offsets.length);
-	make_fibers_surface_at_theta(theta, phi0, phi1, color, steps=40);
+function demo_longitudes() {
+	const ys = [-3/4, -2/4, -1/4, 0/4, 1/4, 2/4, 3/4];
+	for (var i = 0; i < ys.length; i++) {
+		const y = ys[i];
+		const i_inv = (ys.length - i) / ys.length;
+		const color = index_to_color(i, ys.length);
+		make_longitude_arc(y, 0 - i_inv*PI/4, PI + i_inv*PI/4, color);
+	}
 }
 
-// draw_circle(  PI/4  , 0 , PI )
-// draw_circle( -PI/4  , 0 , PI )
+function demo_thetas() {
+	// const thetas  = [-3/8, -2/8, 1/8, 0/8];
+	// const offsets = [0, 0, 0, 0];
+	const thetas  = [0, 1/8, 2/8, 3/8];
+	const offsets = [0, 1/8, 2/8, 3/8];
+	for (var i = 0; i < offsets.length; i++) {
+		const theta = PI*thetas[i];
+		const phi0  = -PI*offsets[i];
+		const phi1  = -PI*offsets[i] + PI;
+		const color = index_to_color(i, offsets.length);
+		make_fibers_surface_at_theta(theta, phi0, phi1, color, steps=40);
+	}
+}
 
-// for (var i = 0; i < 32; i++) {
-// 	const theta = 2*Math.PI * i/32;
-//     update(new THREE.Vector3(Math.cos(theta), 0, Math.sin(theta)));
-// 	addPoint();
-// }
+function demo_phis() {
+	const phis    = [1/16, 2/16, 3/16, 5/16, 6/16, 7/16, 9/16, 10/16, 11/16, 13/16, 14/16, 15/16];
+	for (var i = 0; i < phis.length; i++) {
+		const phi    =  2*PI * phis[i];
+		const theta0 = -PI/3;
+		const theta1 =  PI/3;
+		const color  = index_to_color(i, phis.length);
+		make_fibers_surface_at_phi(phi, theta0, theta1, color, steps=40);
+	}
+}
 
-// for (var i = 10; i < 32; i++) {
-// 	const theta = 2*Math.PI * i/32;
-//     update(new THREE.Vector3(Math.cos(theta), 0, Math.sin(theta)));
-// 	addPoint();
+function demo_phis() {
+	const phis = [1/16, 2/16, 3/16, 5/16, 6/16, 7/16, 9/16, 10/16, 11/16, 13/16, 14/16, 15/16];
+	for (var i = 0; i < phis.length; i++) {
+		const phi    =  2*PI * phis[i];
+		const theta0 = -PI/3;
+		const theta1 =  PI/3;
+		const color  = index_to_color(i, phis.length);
+		make_fibers_surface_at_phi(phi, theta0, theta1, color, steps=40);
+	}
+}
 
-//     update(new THREE.Vector3(0.5 * Math.cos(theta), -Math.sqrt(3) / 2, 0.5 * Math.sin(theta)));
-// 	addPoint();
-// }
+// demo_longitudes();
+// demo_thetas();
+demo_phis();
