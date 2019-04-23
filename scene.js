@@ -255,10 +255,11 @@ function draw_circle(theta, phi0, phi1, steps=100) {
 	}
 }
 
-function make_band_geometry(vertices1, vertices2) {
+function make_band_geometry(vertices1, vertices2, closed) {
 	const vs = vertices1.concat(vertices2)
 	const m = vertices1.length;
 	const n = vertices2.length;
+	const l = vs.length;
 	
 	// create geometry
 	var geometry = new THREE.Geometry();
@@ -266,24 +267,19 @@ function make_band_geometry(vertices1, vertices2) {
 	// add all vertices
 	for (var i = 0; i < vs.length; i++) { geometry.vertices.push(vs[i]); }
 
-	// geometry.faces.push( new THREE.Face3(0,m,m+1))
-	
 	// add all faces
 	for (var i = 0; i < m-1; i++) {
-		// geometry.faces.push( new THREE.Face3(0,1,2) );
 		geometry.faces.push( new THREE.Face3(i, i+m  , i+m+1) )
 		geometry.faces.push( new THREE.Face3(i, i+m+1, i+1  ) )
-		/*
-     .      .
-		 .      .
-		 |      |
-		i+1 -- m+1
-		 |   /  |
-		 i /--- m
-		 |      |
-		 .      .
-		 .      .
-		*/
+		// 0 ..... i --- i+m ....... m-1
+		// |       |  \  |           |
+		// m ....i+m --- i+m+1 ..... 2*m-1
+	}
+
+	// add closing strip
+	if (closed) {
+		geometry.faces.push( new THREE.Face3(m-1, 0,     m) );
+		geometry.faces.push( new THREE.Face3(m-1, 2*m-1, m) );
 	}
 
 	geometry.computeFaceNormals();
@@ -297,7 +293,7 @@ function index_to_color(i, i_max) {
 	return color
 }
 
-function make_longitude_arc(y, theta0, theta1, color, steps=100) {
+function make_longitude_arc(y, theta0, theta1, color, steps=100, closed=false) {
 	var fibers = [];
 	var inset_points = [];
 	for (var i = 0; i < steps; i++) {
@@ -319,7 +315,7 @@ function make_longitude_arc(y, theta0, theta1, color, steps=100) {
 		const fiber1 = fibers[(i+1)%fibers.length];
 
 		const meshMaterial = new THREE.MeshLambertMaterial({ color: color, emissive: 0x222222 });
-		const meshGeometry = make_band_geometry(fiber0, fiber1);
+		const meshGeometry = make_band_geometry(fiber0, fiber1, closed);
 		var mesh = new THREE.Mesh( meshGeometry, meshMaterial );
 		mesh.material.side = THREE.DoubleSide;
 		scene.add( mesh );
@@ -328,7 +324,7 @@ function make_longitude_arc(y, theta0, theta1, color, steps=100) {
 
 
 // gets surface of fibers at theta spanning from phi0 to phi1
-function make_fibers_surface_at_theta(theta, phi0, phi1, color, steps=100) {
+function make_fibers_surface_at_theta(theta, phi0, phi1, color, steps=100, closed=false) {
 	var fibers = [];
 	var inset_points = [];
 	for (var i = 0; i < steps; i++) {
@@ -347,7 +343,7 @@ function make_fibers_surface_at_theta(theta, phi0, phi1, color, steps=100) {
 		const fiber1 = fibers[(i+1)%fibers.length];
 
 		const meshMaterial = new THREE.MeshLambertMaterial({ color: color, emissive: 0x222222 });
-		const meshGeometry = make_band_geometry(fiber0, fiber1);
+		const meshGeometry = make_band_geometry(fiber0, fiber1, closed);
 		var mesh = new THREE.Mesh( meshGeometry, meshMaterial );
 		mesh.material.side = THREE.DoubleSide;
 		scene.add( mesh );
@@ -355,7 +351,7 @@ function make_fibers_surface_at_theta(theta, phi0, phi1, color, steps=100) {
 }
 
 // gets surface of fibers at phi spanning from theta0 to theta1
-function make_fibers_surface_at_phi(phi, theta0, theta1, color, steps=100) {
+function make_fibers_surface_at_phi(phi, theta0, theta1, color, steps=100, closed=false) {
 	var fibers = [];
 	var inset_points = [];
 	for (var i = 0; i < steps; i++) {
@@ -374,7 +370,7 @@ function make_fibers_surface_at_phi(phi, theta0, theta1, color, steps=100) {
 		const fiber1 = fibers[(i+1)%fibers.length];
 
 		const meshMaterial = new THREE.MeshLambertMaterial({ color: color, emissive: 0x222222 });
-		const meshGeometry = make_band_geometry(fiber0, fiber1);
+		const meshGeometry = make_band_geometry(fiber0, fiber1, closed);
 		var mesh = new THREE.Mesh( meshGeometry, meshMaterial );
 		mesh.material.side = THREE.DoubleSide;
 		scene.add( mesh );
@@ -427,6 +423,13 @@ function demo_phis() {
 	}
 }
 
+function demo_poles() {
+	make_longitude_arc(-7/8, 0, 2*PI, index_to_color(0,3), steps=40, closed=true);
+	make_longitude_arc( 0  , 0, 1*PI, index_to_color(1,3));
+	make_longitude_arc( 7/8, 0, 2*PI, index_to_color(2,3), steps=40, closed=true);
+}
+
 // demo_longitudes();
 // demo_thetas();
-demo_phis();
+// demo_phis();
+demo_poles();
