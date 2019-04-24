@@ -51415,8 +51415,8 @@ function demo_poles() {
 	make_longitude_arc( 7/8, 0, 2*PI, index_to_color(2,3), steps=40, closed=true);
 }
 
-demo_longitudes();
-// demo_thetas();
+// demo_longitudes();
+demo_thetas();
 // demo_phis();
 // demo_poles();
 
